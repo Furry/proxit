@@ -1,6 +1,6 @@
 (function ()
     local r = {};
-    r.name = "geonode-proxylist";
+    r.name = "Geonode Proxylist";
     r.source = "https://proxylist.geonode.com/";
     r.direct = "https://proxylist.geonode.com/api/proxy-list?limit=20000&page=1&sort_by=lastChecked&sort_type=desc";
     r.addresses = { };

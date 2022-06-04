@@ -21,7 +21,11 @@ impl Logger {
     pub fn default() -> Self {
         return Self {
             logging_types: vec![
-
+                LoggingType::Request,
+                LoggingType::Warn,
+                LoggingType::Error,
+                LoggingType::Status,
+                LoggingType::Log
             ]
         }
     }

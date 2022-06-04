@@ -1,6 +1,6 @@
 (function ()
     local r = {};
-    r.name = "github-clarketm-proxylist";
+    r.name = "Clarketm ProxyList";
     r.source = "https://github.com/clarketm/proxy-list";
     r.direct = "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt";
     r.addresses = { };

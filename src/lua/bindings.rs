@@ -1,11 +1,25 @@
 use rlua::{self, Context, Result};
-use serde_json;
 use reqwest;
 
-pub fn bind(ctx: Context) -> Result<()> {
+pub struct Lua(rlua::Lua);
+
+impl Lua {
+    pub fn binded() -> rlua::Lua {
+        let lua = rlua::Lua::new();
+        lua.context(|ctx| {
+            bind(ctx).unwrap();
+
+            ctx.load("get('https://github.com')").exec().unwrap();
+        });
+
+        return lua;
+    }
+}
+
+fn bind(ctx: Context) -> Result<()> {
     // Include core files as byte arrays.
     let libs = vec![
-        include_bytes!("../lua/libs/json.lua")
+        include_bytes!("../lua/lua_libs/json.lua")
     ];
 
     let request = ctx.create_function(|ctx, url: String| {
@@ -27,7 +41,6 @@ pub fn bind(ctx: Context) -> Result<()> {
 
         return Ok(to_return);
     }).unwrap();
-
 
     // Set each function in the global scope.
     ctx.globals().set("get", request).unwrap();
