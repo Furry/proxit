@@ -1,0 +1,8 @@
+{
+    "Lua.completion.autoRequire": false,
+    "Lua.diagnostics.disable": [
+        "undefined-field",
+        "need-check-nil",
+        "undefined-global"
+    ]
+}
