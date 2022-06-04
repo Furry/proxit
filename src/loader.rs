@@ -1,6 +1,8 @@
 use std::fs;
 
 use rlua::Table;
+use colored::*;
+use crate::logger::LOGGER;
 
 pub fn load(lua: rlua::Lua) -> Vec<String> {
     let mut addrs = Vec::new();
@@ -15,6 +17,14 @@ pub fn load(lua: rlua::Lua) -> Vec<String> {
             lua.context(|ctx| {
                 let r = ctx.load(&contents).eval::<Table>().unwrap();
                 let x: Vec<String> = r.get("addresses").unwrap();
+                let name: String = r.get("name").unwrap();
+
+                LOGGER.log(format!(
+                    "Loaded {} proxies from {}",
+                    x.len().to_string().blue(),
+                    name.blue()
+                ));
+
                 addrs.extend(x);
             });
         }

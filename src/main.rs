@@ -1,4 +1,5 @@
 pub mod collection;
+pub mod logger;
 pub mod loader;
 pub mod lua;
 
