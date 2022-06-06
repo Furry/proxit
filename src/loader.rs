@@ -1,5 +1,4 @@
-use std::{fs, sync::{Arc, Mutex}};
-
+use std::fs;
 use rlua::Table;
 use colored::*;
 use tokio::task::{JoinHandle, spawn_blocking};

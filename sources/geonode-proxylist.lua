@@ -13,7 +13,7 @@
         r.valid = true;
         local object = json.decode(response.text);
         for _, v in ipairs(object.data) do
-            table.insert(r.addresses, v.ip);
+            table.insert(r.addresses, v.ip .. ":" .. v.port);
         end
     end
 
