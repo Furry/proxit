@@ -1,8 +1,8 @@
-use std::{fmt::Display, time::SystemTime};
-
+use std::{fmt::Display, time::SystemTime, str::FromStr};
+use serde::{ Serialize, Deserialize };
 pub mod checker;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProxyType {
     HTTP,
     HTTPS,
@@ -12,14 +12,26 @@ pub enum ProxyType {
     INVALID
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProxyAnonymity {
+    #[serde(rename = "anonymous")]
+    Anonymous,
+    #[serde(rename = "transparent")]
+    Transparent,
+    #[serde(rename = "elite")]
+    Elite
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProxyV4 {
     pub addr: [u8; 4],
     pub port: u16,
     pub found_at: u64,
     pub last_checked: u64,
     pub proxy_type: ProxyType,
-    pub google: bool
+    pub anonymity: ProxyAnonymity,
+    pub google: bool,
+    pub ping: u128
 }
 
 #[derive(Debug, Clone)]
@@ -29,8 +41,11 @@ pub struct ProxyV6 {
     found_at: u64,
     last_checked: u64,
     proxy_type: ProxyType,
+    anonymity: ProxyAnonymity,
     google: bool,
-    speed: u32 // bps
+    speed: u32, // bps
+    ping: u128
+
 }
 
 impl ProxyV4 {
@@ -47,7 +62,9 @@ impl ProxyV4 {
             found_at: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
             last_checked: 0,
             proxy_type: ProxyType::UNKNOWN,
-            google: false
+            anonymity: ProxyAnonymity::Transparent,
+            google: false,
+            ping: 0,
         });
     }
     
@@ -95,5 +112,18 @@ impl Display for ProxyV6 {
             }
         }
         write!(f, "{}:{}", addr, self.port)
+    }
+}
+
+impl FromStr for ProxyAnonymity {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "anonymous" => Ok(ProxyAnonymity::Anonymous),
+            "transparent" => Ok(ProxyAnonymity::Transparent),
+            "elite" => Ok(ProxyAnonymity::Elite),
+            _ => Err(())
+        }
     }
 }
