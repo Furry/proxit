@@ -67,7 +67,7 @@ impl ProxyV4 {
             ping: 0,
         });
     }
-    
+
     pub fn to_reqwest(&self) -> reqwest::Proxy {
         if self.port == 80 {
             return reqwest::Proxy::all(

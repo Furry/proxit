@@ -7,7 +7,7 @@
     r.valid = false;
 
     -- network request
-    local response = get("https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt");
+    local response = get(r.direct);
 
     if response.status == 200 and response.text ~= nil then
         r.valid = true;

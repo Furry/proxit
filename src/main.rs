@@ -32,7 +32,8 @@ async fn main() {
     checker.add(addrs);
 
     // println!("{}", addrs.len());
-    checker.start();
+    checker.start().await;
+
     let receiver_container = checker.get_reciever();
     let mut receiver = receiver_container.lock().unwrap();
     // create a file

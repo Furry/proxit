@@ -8,8 +8,6 @@ impl Lua {
         let lua = rlua::Lua::new();
         lua.context(|ctx| {
             bind(ctx).unwrap();
-
-            ctx.load("get('https://github.com')").exec().unwrap();
         });
 
         return lua;
@@ -35,8 +33,6 @@ fn bind(ctx: Context) -> Result<()> {
                 }
                 Err(_) => {}
             };
-        } else {
-
         }
 
         return Ok(to_return);
