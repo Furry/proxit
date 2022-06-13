@@ -1,16 +1,17 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-    cmp::{ max, min }
-};
-
-use crate::logger::LOGGER;
+use std::sync::{Arc, Mutex};
+use crate::utils::time;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
-
+use std::time::Duration;
 use super::{ProxyAnonymity, ProxyType, ProxyV4};
-use colored::*;
+use anyhow::Result;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, SystemTime};
+
+
+lazy_static! {
+    pub static ref CHECK_DOMAIN: String =
+        "http://naminginprogress.com/api/proxies/transparency".to_string();
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NamingInProgressResponse {
@@ -19,8 +20,10 @@ pub struct NamingInProgressResponse {
 }
 
 pub enum NetCheckType {
+    Socks5,
+    Socks4,
     Https,
-    Http
+    Http,
 }
 
 pub struct Checker {
@@ -32,15 +35,20 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub fn new(worker_count: usize) -> Self {
+    pub async fn new(worker_count: usize) -> Self {
         let (tx, rx) = channel(1024);
         let queue = Arc::new(deadqueue::unlimited::Queue::new());
-        return Self {
+        let checker = Self {
             queue,
             tx,
             rx: Arc::new(Mutex::new(rx)),
             worker_count,
         };
+
+        // The checker is created, now it's just a matter of starting the workers.
+        // TODO: Make checker.start syncronous.
+        checker.start().await;
+        return checker;
     }
 
     pub fn is_idle(&self) -> bool {
@@ -61,25 +69,41 @@ impl Checker {
         }
     }
 
-    pub async fn get_ping_offset() -> i32 {
-        // Get a Unix timestamp in ms for NOW
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
-
-        match reqwest::get("http://pingback.naminginprogress.com/check").await {
-            Ok(r) => {
-                let body = r.json::<NamingInProgressResponse>().await.unwrap();
-                ((body.at as u128) - now).try_into().unwrap()
-            }
-            _ => {
-                50
-            }
+    pub async fn get_ping_offset() -> u128 {
+        let then = time::now();
+        match reqwest::get(CHECK_DOMAIN.clone()).await {
+            Ok(_) => time::now() - then,
+            _ => 250,
         }
     }
 
-    pub async fn start(&self) {
+    async fn check(&self, proxy: ProxyV4, ping: u128) -> ProxyV4 {
+        let mut proxy = proxy;
+        if Checker::net(&mut proxy, ping.clone(), NetCheckType::Http)
+        .await
+        .is_err()
+            {
+                if Checker::net(&mut proxy, ping.clone(), NetCheckType::Https)
+                    .await
+                    .is_err()
+                {
+                    if Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks4)
+                        .await
+                        .is_err()
+                    {
+                        Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks5)
+                            .await
+                            .ok();
+                    }
+                };
+            }
+
+        Checker::google(&mut proxy).await.ok();
+
+        return proxy;
+    }
+
+    async fn start(&self) {
         let oping = Checker::get_ping_offset().await;
         for _ in 0..self.worker_count {
             let tx = self.tx.clone();
@@ -89,40 +113,52 @@ impl Checker {
                 loop {
                     let mut proxy = queue.pop().await;
 
-                    let http = Checker::net(proxy.clone(), ping.clone(), NetCheckType::Http).await;
-                    let https = Checker::net(proxy.clone(), ping.clone(), NetCheckType::Https).await;
-
-                    if http {
-                        proxy.proxy_type = ProxyType::HTTP;
-                    } else if https {
-                        proxy.proxy_type = ProxyType::HTTPS;
-                    } else {
-                        proxy.proxy_type = ProxyType::INVALID;
+                    if Checker::net(&mut proxy, ping.clone(), NetCheckType::Http)
+                        .await
+                        .is_err()
+                    {
+                        if Checker::net(&mut proxy, ping.clone(), NetCheckType::Https)
+                            .await
+                            .is_err()
+                        {
+                            if Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks4)
+                                .await
+                                .is_err()
+                            {
+                                Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks5)
+                                    .await
+                                    .ok();
+                            }
+                        };
                     }
 
-                    if http || https {
-                        proxy.last_checked = SystemTime::now()
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs();
-
-                        if Checker::google(proxy.clone()).await {
-                            proxy.google = true;
-                        }
-                    }
-
+                    Checker::google(&mut proxy).await.ok();
                     tx.send(proxy).await.unwrap();
                 }
             });
         }
     }
 
-    pub async fn net(mut proxy: ProxyV4, ping: i32, check_type: NetCheckType) -> bool {
+    async fn net(
+        proxy: &mut ProxyV4,
+        server_ping: u128,
+        check_type: NetCheckType,
+    ) -> Result<(), anyhow::Error> {
         let client = {
             let client = reqwest::ClientBuilder::new();
             match check_type {
-                NetCheckType::Https => client.proxy(reqwest::Proxy::all(proxy.as_https()).unwrap()),
-                NetCheckType::Http => client.proxy(reqwest::Proxy::all(proxy.as_http()).unwrap())
+                NetCheckType::Https => {
+                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTP)).unwrap())
+                }
+                NetCheckType::Http => {
+                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTPS)).unwrap())
+                }
+                NetCheckType::Socks4 => {
+                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::SOCKS4)).unwrap())
+                }
+                NetCheckType::Socks5 => {
+                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::SOCKS5)).unwrap())
+                }
             }
             .user_agent(randua::new().desktop().to_string())
             .timeout(Duration::from_millis(2500))
@@ -130,74 +166,69 @@ impl Checker {
             .unwrap()
         };
 
-        let sent_at = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
-        
-        return match client
-            .get("http://pingback.naminginprogress.com/check")
-            .send()
-            .await {
-            Ok(response) => {
-                if response.status().is_success() {
-                    let body = response.json::<NamingInProgressResponse>().await;
-                    if body.is_err() {
-                        return false;
-                    }
-                    let body = body.unwrap();
-                    proxy.last_checked = SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs();
-                    proxy.anonymity = body.level;
-                    proxy.ping = max(u128::from(body.at), sent_at) - min(u128::from(body.at), sent_at);
-                    true
-                } else {
-                    false
-                }
-            }
-            Err(_) => false,
+        let then = time::now();
+        let response = client.get(CHECK_DOMAIN.clone()).send().await?;
+
+        let text = response.text().await?;
+
+        let body = serde_json::from_str::<NamingInProgressResponse>(text.as_str())?;
+
+        proxy.last_checked = time::now();
+        proxy.anonymity = body.level;
+        proxy.ping = time::now() - then - server_ping;
+
+        proxy.proxy_type = match check_type {
+            NetCheckType::Socks5 => ProxyType::SOCKS5,
+            NetCheckType::Socks4 => ProxyType::SOCKS4,
+            NetCheckType::Https => ProxyType::HTTPS,
+            NetCheckType::Http => ProxyType::HTTP,
         };
+
+        Ok(())
     }
 
-    pub async fn google(mut proxy: ProxyV4) -> bool {
+    async fn google(proxy: &mut ProxyV4) -> Result<(), anyhow::Error> {
         let builder = reqwest::ClientBuilder::new()
             .proxy(reqwest::Proxy::all(proxy.as_https()).unwrap())
             .user_agent(randua::new().desktop().to_string())
             .timeout(Duration::from_millis(2500));
 
-        let client = match proxy.proxy_type {
-            ProxyType::HTTP => builder
-                .proxy(reqwest::Proxy::all(proxy.as_http()).unwrap())
-                .build()
-                .unwrap(),
-            ProxyType::HTTPS => builder
-                .proxy(reqwest::Proxy::all(proxy.as_https()).unwrap())
-                .build()
-                .unwrap(),
-            _ => {
-                panic!("Invalid proxy type passed to checker.");
+        let client_ = match proxy.proxy_type {
+            ProxyType::HTTP => {
+                Ok(builder.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTP)).unwrap()))
             }
+            ProxyType::HTTPS => {
+                Ok(builder.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTPS)).unwrap()))
+            }
+            ProxyType::SOCKS4 => {
+                Ok(builder.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::SOCKS4)).unwrap()))
+            }
+            ProxyType::SOCKS5 => {
+                Ok(builder.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::SOCKS5)).unwrap()))
+            }
+            _ => Err(()),
         };
 
-        return match client
+        if client_.is_err() {
+            return Ok(());
+        }
+
+        let client = client_.unwrap().build().unwrap();
+
+        match client
             .get("https://www.google.com/search?client=firefox-b-d&q=string")
             .send()
             .await
         {
             Ok(response) => {
                 if response.status().is_success() && response.status().as_u16() != 409 {
-                    proxy.last_checked = SystemTime::now()
-                        .duration_since(SystemTime::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs();
-                    true
-                } else {
-                    false
+                    proxy.last_checked = time::now();
+                    proxy.google = true;
                 }
             }
-            Err(_) => false,
+            Err(_) => (),
         };
+
+        return Ok(());
     }
 }

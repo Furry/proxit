@@ -1,1 +1,242 @@
-[{"addr":[157,245,222,183],"port":80,"found_at":1654877833,"last_checked":1654877833,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[152,26,231,77],"port":9443,"found_at":1654877833,"last_checked":1654877834,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[164,155,151,31],"port":80,"found_at":1654877833,"last_checked":1654877834,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[174,138,116,12],"port":80,"found_at":1654877833,"last_checked":1654877838,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[50,16,33,219],"port":80,"found_at":1654877833,"last_checked":1654877838,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[103,194,169,109],"port":8080,"found_at":1654877833,"last_checked":1654877839,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[164,155,151,0],"port":80,"found_at":1654877833,"last_checked":1654877840,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[183,111,25,253],"port":8080,"found_at":1654877833,"last_checked":1654877838,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[58,162,157,236],"port":3128,"found_at":1654877833,"last_checked":1654877840,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[190,26,201,194],"port":8080,"found_at":1654877833,"last_checked":1654877841,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[195,158,30,232],"port":3128,"found_at":1654877833,"last_checked":1654877842,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0},{"addr":[103,219,194,13],"port":80,"found_at":1654877833,"last_checked":1654877842,"proxy_type":"HTTP","anonymity":"transparent","google":false,"ping":0}]
+[
+    {
+        "addr": [
+            167,
+            172,
+            158,
+            85
+        ],
+        "port": 81,
+        "found_at": 1655142379639,
+        "last_checked": 1655142380462,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 63
+    },
+    {
+        "addr": [
+            35,
+            233,
+            16,
+            212
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142380692,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 158
+    },
+    {
+        "addr": [
+            164,
+            155,
+            151,
+            0
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142381677,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 185
+    },
+    {
+        "addr": [
+            80,
+            26,
+            96,
+            212
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383567,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 2080
+    },
+    {
+        "addr": [
+            66,
+            196,
+            238,
+            179
+        ],
+        "port": 3128,
+        "found_at": 1655142379639,
+        "last_checked": 1655142382915,
+        "proxy_type": "HTTPS",
+        "anonymity": "anonymous",
+        "google": false,
+        "ping": 107
+    },
+    {
+        "addr": [
+            47,
+            254,
+            39,
+            233
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383026,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 218
+    },
+    {
+        "addr": [
+            103,
+            219,
+            194,
+            11
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383023,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 214
+    },
+    {
+        "addr": [
+            103,
+            219,
+            194,
+            12
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383044,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 236
+    },
+    {
+        "addr": [
+            47,
+            74,
+            18,
+            113
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383434,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 630
+    },
+    {
+        "addr": [
+            195,
+            158,
+            30,
+            232
+        ],
+        "port": 3128,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383571,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 760
+    },
+    {
+        "addr": [
+            43,
+            250,
+            127,
+            98
+        ],
+        "port": 9001,
+        "found_at": 1655142379639,
+        "last_checked": 1655142383923,
+        "proxy_type": "HTTPS",
+        "anonymity": "anonymous",
+        "google": false,
+        "ping": 1126
+    },
+    {
+        "addr": [
+            190,
+            120,
+            248,
+            89
+        ],
+        "port": 999,
+        "found_at": 1655142379639,
+        "last_checked": 1655142384450,
+        "proxy_type": "HTTPS",
+        "anonymity": "anonymous",
+        "google": false,
+        "ping": 1653
+    },
+    {
+        "addr": [
+            157,
+            100,
+            53,
+            100
+        ],
+        "port": 999,
+        "found_at": 1655142379639,
+        "last_checked": 1655142384904,
+        "proxy_type": "HTTPS",
+        "anonymity": "anonymous",
+        "google": false,
+        "ping": 2098
+    },
+    {
+        "addr": [
+            192,
+            236,
+            160,
+            186
+        ],
+        "port": 80,
+        "found_at": 1655142379639,
+        "last_checked": 1655142384936,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 2138
+    },
+    {
+        "addr": [
+            80,
+            179,
+            140,
+            189
+        ],
+        "port": 80,
+        "found_at": 1655142379640,
+        "last_checked": 1655142390497,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 266
+    },
+    {
+        "addr": [
+            38,
+            55,
+            182,
+            225
+        ],
+        "port": 80,
+        "found_at": 1655142379640,
+        "last_checked": 1655142393341,
+        "proxy_type": "HTTPS",
+        "anonymity": "elite",
+        "google": false,
+        "ping": 868
+    }
+]

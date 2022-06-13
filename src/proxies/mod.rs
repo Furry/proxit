@@ -1,5 +1,7 @@
 use std::{fmt::Display, time::SystemTime, str::FromStr};
 use serde::{ Serialize, Deserialize };
+
+use crate::utils::time;
 pub mod checker;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,8 +28,8 @@ pub enum ProxyAnonymity {
 pub struct ProxyV4 {
     pub addr: [u8; 4],
     pub port: u16,
-    pub found_at: u64,
-    pub last_checked: u64,
+    pub found_at: u128,
+    pub last_checked: u128,
     pub proxy_type: ProxyType,
     pub anonymity: ProxyAnonymity,
     pub google: bool,
@@ -59,7 +61,7 @@ impl ProxyV4 {
         return Some(Self {
             addr: [addr[0], addr[1], addr[2], addr[3]],
             port,
-            found_at: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
+            found_at: time::now(),
             last_checked: 0,
             proxy_type: ProxyType::UNKNOWN,
             anonymity: ProxyAnonymity::Transparent,
@@ -68,15 +70,23 @@ impl ProxyV4 {
         });
     }
 
-    pub fn to_reqwest(&self) -> reqwest::Proxy {
-        if self.port == 80 {
-            return reqwest::Proxy::all(
+    pub fn uri(&self, proxy_type: ProxyType) -> String {
+        match proxy_type {
+            ProxyType::HTTP => {
                 format!("http://{}", self.to_string())
-            ).unwrap();
-        } else {
-            return reqwest::Proxy::all(
+            },
+            ProxyType::HTTPS => {
                 format!("https://{}", self.to_string())
-            ).unwrap();
+            },
+            ProxyType::SOCKS4 => {
+                format!("socks4://{}:{}", self.to_string(), self.port)
+            },
+            ProxyType::SOCKS5 => {
+                format!("socks5://{}:{}", self.to_string(), self.port)
+            },
+            _ => {
+                format!("{}:{}", self.to_string(), self.port)
+            }
         }
     }
 
