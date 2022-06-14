@@ -7,15 +7,15 @@
     r.valid = false;
 
     -- network request
-    -- local response = get(r.direct);
+    local response = get(r.direct);
 
-    -- if response.status == 200 and response.text ~= nil then
-    --     r.valid = true;
-    --     local object = json.decode(response.text);
-    --     for _, v in ipairs(object.data) do
-    --         table.insert(r.addresses, v.ip .. ":" .. v.port);
-    --     end
-    -- end
+    if response.status == 200 and response.text ~= nil then
+        r.valid = true;
+        local object = json.decode(response.text);
+        for _, v in ipairs(object.data) do
+            table.insert(r.addresses, v.ip .. ":" .. v.port);
+        end
+    end
 
     return r;
 end)()

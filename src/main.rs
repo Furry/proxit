@@ -9,22 +9,27 @@ pub mod utils;
 pub mod cache;
 pub mod lua;
 
-use std::fs;
-use std::io::Write;
+use std::sync::{Arc, Mutex};
 use cache::Cache;
-use lua::bindings;
 use proxies::ProxyV4;
 use proxies::checker::Checker;
-use rlua::prelude::LuaValue;
-use rlua::{FromLuaMulti, Table};
-use tokio::task::spawn_blocking;
-use actix_web::{web, App, HttpServer};
-
+use lazy_static::lazy_static;
 use crate::proxies::ProxyType;
+
+lazy_static! {
+    pub static ref CACHE: Arc<Mutex<Cache>> = Arc::new(Mutex::new(Cache::new()));
+}
 
 #[tokio::main]
 async fn main() {
-    let checker = Checker::new(250).await;
+    let checker = Checker::new(250);
+
+    load(&checker).await;
+
+    tokio::join!(
+        cache_loop(checker),
+        webserver::webserver()
+    );
 }
 
 async fn load(checker: &Checker) {
@@ -36,4 +41,20 @@ async fn load(checker: &Checker) {
         .collect::<Vec<ProxyV4>>();
 
     checker.add(addrs);
+}
+
+async fn cache_loop(checker: Checker) {
+    let cache = CACHE.clone();
+    let receiver_container = checker.get_reciever();
+    let mut receiver = receiver_container.lock().unwrap();
+    let mut c = 0;
+    loop {
+        while let Some(proxy) = receiver.recv().await {
+            if proxy.proxy_type != ProxyType::INVALID && proxy.proxy_type != ProxyType::UNKNOWN {
+                c += 1;
+                println!("{}", c);
+                cache.lock().unwrap().add(proxy);
+            }
+        }
+    }
 }

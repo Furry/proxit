@@ -35,7 +35,7 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub async fn new(worker_count: usize) -> Self {
+    pub fn new(worker_count: usize) -> Self {
         let (tx, rx) = channel(1024);
         let queue = Arc::new(deadqueue::unlimited::Queue::new());
         let checker = Self {
@@ -47,7 +47,7 @@ impl Checker {
 
         // The checker is created, now it's just a matter of starting the workers.
         // TODO: Make checker.start syncronous.
-        checker.start().await;
+        checker.start();
         return checker;
     }
 
@@ -77,119 +77,64 @@ impl Checker {
         }
     }
 
-    async fn check(&self, proxy: ProxyV4, ping: u128) -> ProxyV4 {
+    pub async fn check(proxy: ProxyV4) -> ProxyV4 {
         let mut proxy = proxy;
-        if Checker::net(&mut proxy, ping.clone(), NetCheckType::Http)
-        .await
-        .is_err()
-            {
-                if Checker::net(&mut proxy, ping.clone(), NetCheckType::Https)
-                    .await
-                    .is_err()
-                {
-                    if Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks4)
-                        .await
-                        .is_err()
-                    {
-                        Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks5)
-                            .await
-                            .ok();
-                    }
-                };
+        if Checker::net(&mut proxy, ProxyType::HTTP).await.is_err() {
+            if Checker::net(&mut proxy, ProxyType::SOCKS5).await.is_err() {
+                Checker::net(&mut proxy, ProxyType::HTTPS).await.ok();
             }
+        }
 
-        Checker::google(&mut proxy).await.ok();
+        if proxy.proxy_type != ProxyType::UNKNOWN || proxy.proxy_type != ProxyType::INVALID {
+            Checker::google(&mut proxy).await.ok();
+        }
 
         return proxy;
     }
 
-    async fn start(&self) {
-        let oping = Checker::get_ping_offset().await;
+    fn start(&self) {
         for _ in 0..self.worker_count {
             let tx = self.tx.clone();
             let queue = self.queue.clone();
-            let ping = oping.clone();
             tokio::spawn(async move {
                 loop {
-                    let mut proxy = queue.pop().await;
-
-                    if Checker::net(&mut proxy, ping.clone(), NetCheckType::Http)
-                        .await
-                        .is_err()
-                    {
-                        if Checker::net(&mut proxy, ping.clone(), NetCheckType::Https)
-                            .await
-                            .is_err()
-                        {
-                            if Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks4)
-                                .await
-                                .is_err()
-                            {
-                                Checker::net(&mut proxy, ping.clone(), NetCheckType::Socks5)
-                                    .await
-                                    .ok();
-                            }
-                        };
-                    }
-
-                    Checker::google(&mut proxy).await.ok();
-                    tx.send(proxy).await.unwrap();
+                    let proxy = queue.pop().await;
+                    tx.send(
+                        Checker::check(proxy).await
+                    ).await.unwrap();
                 }
             });
         }
     }
 
-    async fn net(
+    pub async fn net(
         proxy: &mut ProxyV4,
-        server_ping: u128,
-        check_type: NetCheckType,
+        check_type: ProxyType,
     ) -> Result<(), anyhow::Error> {
-        let client = {
-            let client = reqwest::ClientBuilder::new();
-            match check_type {
-                NetCheckType::Https => {
-                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTP)).unwrap())
-                }
-                NetCheckType::Http => {
-                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTPS)).unwrap())
-                }
-                NetCheckType::Socks4 => {
-                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::SOCKS4)).unwrap())
-                }
-                NetCheckType::Socks5 => {
-                    client.proxy(reqwest::Proxy::all(proxy.uri(ProxyType::SOCKS5)).unwrap())
-                }
-            }
+        let client = reqwest::ClientBuilder::new()
+            .proxy(reqwest::Proxy::all(proxy.uri(check_type.clone())).unwrap())
             .user_agent(randua::new().desktop().to_string())
-            .timeout(Duration::from_millis(2500))
+            .timeout(Duration::from_millis(5000))
             .build()
-            .unwrap()
-        };
+            .unwrap();
 
         let then = time::now();
         let response = client.get(CHECK_DOMAIN.clone()).send().await?;
-
         let text = response.text().await?;
 
         let body = serde_json::from_str::<NamingInProgressResponse>(text.as_str())?;
 
         proxy.last_checked = time::now();
         proxy.anonymity = body.level;
-        proxy.ping = time::now() - then - server_ping;
-
-        proxy.proxy_type = match check_type {
-            NetCheckType::Socks5 => ProxyType::SOCKS5,
-            NetCheckType::Socks4 => ProxyType::SOCKS4,
-            NetCheckType::Https => ProxyType::HTTPS,
-            NetCheckType::Http => ProxyType::HTTP,
-        };
+        proxy.ping = time::now() - then;
+        proxy.proxy_type = check_type;
 
         Ok(())
     }
 
     async fn google(proxy: &mut ProxyV4) -> Result<(), anyhow::Error> {
         let builder = reqwest::ClientBuilder::new()
-            .proxy(reqwest::Proxy::all(proxy.as_https()).unwrap())
+            .proxy(reqwest::Proxy::all(proxy.uri(ProxyType::HTTPS)).unwrap())
             .user_agent(randua::new().desktop().to_string())
             .timeout(Duration::from_millis(2500));
 

@@ -79,10 +79,10 @@ impl ProxyV4 {
                 format!("https://{}", self.to_string())
             },
             ProxyType::SOCKS4 => {
-                format!("socks4://{}:{}", self.to_string(), self.port)
+                format!("socks4://{}", self.to_string())
             },
             ProxyType::SOCKS5 => {
-                format!("socks5://{}:{}", self.to_string(), self.port)
+                format!("socks5://{}", self.to_string())
             },
             _ => {
                 format!("{}:{}", self.to_string(), self.port)
@@ -90,13 +90,19 @@ impl ProxyV4 {
         }
     }
 
-    pub fn as_http(&self) -> String {
-        return format!("http://{}", self.to_string());
+    pub fn reqwest(&self, proxy_type: ProxyType) -> reqwest::Proxy {
+        let uri = self.uri(proxy_type);
+        reqwest::Proxy::custom(move |url| {
+            let s = url.to_string();
+            println!("{}", s);
+            if s.starts_with("http") || s.starts_with("https") {
+                return Some(uri.clone());
+            } else {
+                return None;
+            }
+        })
     }
 
-    pub fn as_https(&self) -> String {
-        return format!("https://{}", self.to_string());
-    }
 }
 
 impl Display for ProxyV4 {
@@ -122,6 +128,18 @@ impl Display for ProxyV6 {
             }
         }
         write!(f, "{}:{}", addr, self.port)
+    }
+}
+
+impl PartialEq for ProxyV4 {
+    fn eq(&self, other: &Self) -> bool {
+        self.addr == other.addr && self.port == other.port
+    }
+}
+
+impl PartialEq for ProxyV6 {
+    fn eq(&self, other: &Self) -> bool {
+        self.addr == other.addr && self.port == other.port
     }
 }
 
